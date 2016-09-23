@@ -208,7 +208,7 @@
             msgjson = $.parseJSON(message.payloadString);
             // console.log('温度 ' +  msgjson.dht11_temperature);
 				var rlMsgReturn = msgjson.rlCMDReturn;
-					if ("undefined" != typeof (rlMsgReturn) && (0 == listenme)) {
+					if ("undefined" != typeof (rlMsgReturn)) {
 						rlReturnVal=msgjson.rlValue;
 						rlCMDReturn(rlReturnVal);
 					}
