@@ -1,0 +1,340 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="maximum-scale=1.0,minimum-scale=1.0,user-scalable=0,width=device-width,initial-scale=1.0"/>
+    <title>设备联动</title>
+		<style>
+			* {
+				margin: 0px;
+				padding: 0px;
+			}
+			body {
+				background-color: #EBEBEB;
+				background-size: cover;
+				font-family: "黑体";
+				font-size: 13px;
+			}
+			.content {
+				margin: 1px;
+				padding: 1px;
+			}
+			.title {
+				margin: 10px 12px 5px 12px;
+				background-color: #FFFFFF;
+				text-align: center;
+				padding: 7px 0;
+				box-shadow: 3px 3px 3px #e1e1e1;
+			}
+			.title span {
+				color: #000000;
+				font-size: 18px;
+				position: relative;
+			}
+			.RelayLedcls{
+				margin: 5px 12px;
+				background-color: #FFFFFF;
+			}
+			.LEDcls{
+				height: 50px;
+			}
+			.RLcontrolStylecls{
+				margin: 5px 5px 12px 5px;
+				font-size: 15px;
+			}
+
+			.humihis {
+				margin: 5px 12px;
+				height: 50px;
+				background-color: #FFFFFF;
+				text-align: center;
+				box-shadow: 3px 3px 3px #e1e1e1;
+			}
+			
+			.rgblight {
+				margin: 5px 12px;
+				background-color: #FFFFFF;
+				box-shadow: 3px 3px 3px #e1e1e1;
+				padding: 1px 0;
+				font-size: 15px;
+			}
+			#backleft {
+				display: block;
+			}
+
+		</style>
+</head>
+<body>
+		<div class="content">
+			<div class="title">
+				<span>继电器控制</span>
+			</div>
+			<div class="RelayLedcls">
+				<div class="LEDcls" width="100%">
+					<table width="120px" style="float:right;">
+						<tr align="center">
+							<td valign="middle" align="middle"><img id="ID_RL1" src="./image/ledoff.png" alt="">
+								<br/><span>RL1</span></td>
+							<td valign="middle" align="middle"><img id="ID_RL2" src="./image/ledoff.png" alt="">
+								<br/><span>RL2</span></td>
+							<td valign="middle" align="middle"><img id="ID_RL3" src="./image/ledoff.png" alt="">
+								<br/><span>RL3</span></td>
+							<td valign="middle" align="middle"><img id="ID_RL4" src="./image/ledoff.png" alt="">
+								<br/><span>RL4</span></td>
+						</tr>
+					</table>
+				</div>
+				<hr/>
+				<div class="RLcontrolStylecls" width="100%">
+					<table width="100%">
+						<tr align="center">
+	                        <td valign="middle" align="left"><span>多路控制方式切换</span><br/>
+	                        	<span style="font-size: 12px;">打开为多路控制，关闭为单路控制</span>
+	                        </td>
+	                        <td valign="middle" align="right"><img id="ID_RLcontrolStyle" src="./image/controlStyleSingle.png" alt="">	</td>
+                        </tr>					
+					</table>
+				</div>
+				<hr/>
+				<div class="RLswitchcls" width="100%">
+					<table width="100%" height="200px">
+						<tr align="center">
+	                        <td valign="middle" align="left"><span>第1路</span></td>
+	                        <td valign="middle" align="right"><img id="ID_RLswitch1" align="right" src="./image/RLswitchOFF.png" alt=""></td>
+                        </tr>
+						<tr align="center">
+	                        <td valign="middle" align="left"><span>第2路</span></td>
+	                        <td valign="middle" align="right"><img id="ID_RLswitch2" align="right" src="./image/RLswitchOFF.png" alt=""></td>
+                        </tr>
+						<tr align="center">
+	                        <td valign="middle" align="left"><span>第3路</span></td>
+	                        <td valign="middle" align="right"><img id="ID_RLswitch3" align="right" src="./image/RLswitchOFF.png" alt=""></td>
+                        </tr>
+						<tr align="center">
+	                        <td valign="middle" align="left"><span>第4路</span></td>
+	                        <td valign="middle" align="right"><img id="ID_RLswitch4" align="right" src="./image/RLswitchOFF.png" alt=""></td>
+                        </tr>                                                                        					
+					</table>					
+				</div>
+				<hr/>
+				<div align="center" width="100%">
+				<input class="btn" type="button" id="ID_RLmulcmd" style="width:100px;height:40px;" value="多路RL控制"><br/>&nbsp;
+				</div>
+			</div>
+			
+			
+			<div class="humihis">
+				<br/>
+				<div id="device_id"></div>
+				<div id="debug"></div>
+			</div>
+		</div>
+<script src="./js/mqttws31.js"></script>
+<script src="./js/jquery-2.1.3.js"></script>
+<script>
+		var btn_rlstyle=0;
+		var btn_rl=[0,0,0,0];
+    // 从url中获取某个参数的值
+    function getParameterByName(name) {
+        var match = RegExp('[?&]' + name + '=([^&]*)').exec(window.location.search);
+        return match && decodeURIComponent(match[1].replace(/\+/g, ' '));
+    }
+    // 得到设备ID
+    var device_id = getParameterByName('device_id');
+    // 如果设备ID不为空，则执行连接MQTT的操作
+    if ( device_id !== null ){
+        ez_connect(device_id);
+    }
+
+    // 连接MQTT服务
+    function ez_connect(device_id) {
+        // 获取access_token
+        // access_token是公众号的全局唯一票据，公众号调用各接口时都需使用access_token。
+        // 正常情况下access_token有效期为7200秒，重复获取将导致上次获取的access_token失效
+        var access_token = getParameterByName('access_token');
+
+        // document.getElementById('device_id').innerHTML = "DeviceID = "+device_id;
+
+        // websocket连接
+        // wsbroker:host
+        // wsport:端口 默认1983
+        // Client-ID ： v1_web_[MAC]  //版本号_app_手机MAC(必须是12位小写)
+        var wsbroker = "api.easylink.io";  //mqtt websocket enabled broker
+        var wsport = 1983 // port for above
+        var client = new Paho.MQTT.Client(wsbroker, wsport, "v1-web-" + parseInt(Math.random() * 1000000, 12));
+
+        // 基本参数配置
+        // 连接丢失所对应的callback函数
+        client.onConnectionLost = onConnectionLost;
+        // 消息到达所对应的callback函数
+        client.onMessageArrived = onMessageArrived;
+        // 连接成功所对应的callback函数
+        client.connect({onSuccess:onConnect});
+
+        // 连接成功
+        function onConnect() {
+            var subtopic = device_id+'/out/#';
+            // Once a connection has been made, make a subscription and send a message.
+            // 向某个通道发送指令
+            // topic：通道
+            // commond：指令
+            client.publish = function(topic, commond) {
+                // console.log("现在执行-->:"+commond);
+                message = new Paho.MQTT.Message(commond);
+                message.destinationName = topic;
+                client.send(message);
+            }
+            // console.log("device_id:"+device_id);
+            console.log("onConnect");
+            client.subscribe(subtopic, {qos: 0});
+            rlStartCMD_send();
+        }
+        // 连接丢失
+        function onConnectionLost(responseObject) {
+            if (responseObject.errorCode !== 0)
+                console.log("onConnectionLost:"+responseObject.errorMessage);
+        }
+        // 消息到达
+        // var msgindex = 1;
+        var msgjson;
+        function onMessageArrived(message) {
+            // console.log(message.topic + ': ' +  message.payloadString);
+            // if(msgindex > 12 ){
+            //     msgindex =1;
+            //     document.getElementById('debug').innerHTML = "";
+            // }
+            // msgindex++;
+            // console.log('设备上报:' +  message.payloadString);
+            msgjson = $.parseJSON(message.payloadString);
+            // console.log('温度 ' +  msgjson.dht11_temperature);
+				var rlMsgReturn = msgjson.rlCMDReturn;
+					if ("undefined" != typeof (rlMsgReturn) && (0 == listenme)) {
+						rlReturnVal=msgjson.rlValue;
+						rlCMDReturn(rlReturnVal);
+					}
+        }
+
+// 控制按钮显示的事件
+		//模式切换
+		$("#ID_RLcontrolStyle").click(function(){
+			if(btn_rlstyle===0){
+				$("#ID_RLcontrolStyle").attr("src", "../image/controlStyleMul.png");
+				btn_rlstyle=1;
+			}else if(btn_rlstyle===1){
+				$("#ID_RLcontrolStyle").attr("src", "../image/controlStyleSingle.png");
+				btn_rlstyle=0;
+			}
+		});
+		//多路控制命令
+		$("#ID_RLmulcmd").click(function(){
+			if(btn_rlstyle===1){
+				rlMulCMD_send();
+			}else{
+				alert("此操作需先切换至多路控制方式！\n（打开“多路控制方式切换”开关）");
+			}
+		});
+		//继电器开关
+		$("#ID_RLswitch1").click(function(){
+			if(btn_rl[0]===0){
+				$("#ID_RLswitch1").attr("src", "./image/RLswitchON.png");
+				btn_rl[0]=1;
+			}else if(btn_rl[0]===1){
+				$("#ID_RLswitch1").attr("src", "./image/RLswitchOFF.png");
+				btn_rl[0]=0;
+			}
+			rlSingleCMD_send(1);
+		});	
+		$("#ID_RLswitch2").click(function(){
+			if(btn_rl[1]===0){
+				$("#ID_RLswitch2").attr("src", "./image/RLswitchON.png");
+				btn_rl[1]=1;
+			}else if(btn_rl[1]===1){
+				$("#ID_RLswitch2").attr("src", "./image/RLswitchOFF.png");
+				btn_rl[1]=0;
+			}
+			rlSingleCMD_send(2);
+		});	
+		$("#ID_RLswitch3").click(function(){
+			if(btn_rl[2]===0){
+				$("#ID_RLswitch3").attr("src", "./image/RLswitchON.png");
+				btn_rl[2]=1;
+			}else if(btn_rl[2]===1){
+				$("#ID_RLswitch3").attr("src", "./image/RLswitchOFF.png");
+				btn_rl[2]=0;
+			}
+			rlSingleCMD_send(3);
+		});
+		$("#ID_RLswitch4").click(function(){
+			if(btn_rl[3]===0){
+				$("#ID_RLswitch4").attr("src", "./image/RLswitchON.png");
+				btn_rl[3]=1;
+			}else if(btn_rl[3]===1){
+				$("#ID_RLswitch4").attr("src", "./image/RLswitchOFF.png");
+				btn_rl[3]=0;
+			}
+			rlSingleCMD_send(4);
+		});		
+		
+		//单路控制命令请求
+		function rlSingleCMD_send(rlChannel){
+			if(btn_rlstyle==0){
+				var rlCMD;
+				var topic = device_id + '/in';
+				rlLedShow();
+				rlCMD = '{"rlMulMode":false,"rlChannel":'+rlChannel+',"rlValue":'+btn_rl[rlChannel-1]+'}';
+				client.publish(topic, rlCMD);
+			}
+		}
+		//多路控制命令请求
+		function rlMulCMD_send(){
+			var rlCMD;
+			var topic = device_id + '/in';
+			var rlVal=0;
+			rlLedShow();
+			for(var i=0;i<4;i++){
+				rlVal|=btn_rl[i]<<i;
+			}
+			rlCMD = '{"rlMulMode":true,"rlValue":'+rlVal+'}';
+			client.publish(topic, rlCMD);
+		}	
+		function rlStartCMD_send(){
+			var topic = device_id + '/in';
+			rlCMD = '{"rlModuleStart":true}';
+			client.publish(topic, rlCMD);
+		}
+			
+		//LED控制
+		function rlLedShow(){
+			var str_id;
+			for(var i=1;i<5;i++){
+				str_id="#ID_RL"+i;
+				if(btn_rl[i-1]===0){
+					$(str_id).attr("src", "./image/ledoff.png");
+				}else if(btn_rl[i-1]===1){
+					$(str_id).attr("src", "./image/ledon.png");
+				}
+			}
+		}
+		//接收消息处理
+		function rlCMDReturn(rlVal){
+			var rltemp;
+			var RLbtnID;
+			for(var i=0;i<4;i++){
+				rltemp=(rlVal>>i)& 0x01;
+				if(rltemp!=btn_rl[i]){
+					btn_rl[i]=rltemp;
+					RLbtnID="#ID_RLswitch"+(i+1);
+					if(btn_rl[i]===0){
+						$(RLbtnID).attr("src", "./image/RLswitchOFF.png");
+					}else if(btn_rl[i]===1){
+						$(RLbtnID).attr("src", "./image/RLswitchON.png");
+					}
+				}
+			}
+			rlLedShow();
+		}
+    }
+
+</script>
+</body>
+</html>
